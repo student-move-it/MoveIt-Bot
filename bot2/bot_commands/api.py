@@ -116,6 +116,8 @@ async def request_api(method: str, path: str, *, guild_id: int | None = None,
                     flush=True,
                 )
                 if response.status < 300:
+                    if method.upper() == "PATCH" and path == "/analog-count" and payload is not None:
+                        return f"{payload['change']:+d}명의 이동인원이 변경되었습니다"
                     return data.get("message", "요청이 처리되었습니다.")
                 error = data.get("error", {})
                 if isinstance(error, dict) and error.get("message"):
