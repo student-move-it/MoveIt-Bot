@@ -9,7 +9,7 @@ from bot_commands.api import create_movement, request_api
 def _student_from_nickname(nickname: str) -> dict[str, str]:
     parts = nickname.strip().split("_", maxsplit=1)
     if len(parts) != 2 or not parts[0].isdigit() or not parts[1].strip():
-        raise ValueError("학생 닉네임을 '학번_이름' 형식으로 설정해 주세요. (예: 1215_하채은)")
+        raise ValueError("학생 닉네임을 `학번_이름` 형식으로 설정해 주세요. (예: `1215_하채은`)")
     return {"studentNumber": parts[0], "name": parts[1].strip()}
 
 
@@ -85,7 +85,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
 
     @tree.command(name="복귀", description="이동 중인 학생의 복귀를 요청합니다.")
     @app_commands.describe(
-        학생1="멘션할 학생 (최대 5명). 모두 비우면 본인입니다.",
+        학생1="멘션할 학생 (최대 5명). 멘션을 하지 않을 시 본인이동",
         학생2="멘션할 학생",
         학생3="멘션할 학생",
         학생4="멘션할 학생",
@@ -128,9 +128,9 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
 
     @tree.command(name="수정", description="등록된 이동 정보의 수정을 요청합니다.")
     @app_commands.describe(
-        교시="변경할 교시 (예: 8~10, 9~10교시)",
-        장소="변경할 이동 장소 (예: 도서관)",
-        학생1="멘션할 학생 (최대 5명). 모두 비우면 본인입니다.",
+        교시="변경할 교시 (예: 8~10, 9교시)",
+        장소="변경할 이동 장소 (예: 세미나 4-1)",
+        학생1="멘션할 학생 (최대 5명). 멘션을 하지 않을 시 본인이동",
         학생2="멘션할 학생",
         학생3="멘션할 학생",
         학생4="멘션할 학생",
@@ -172,15 +172,35 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         await interaction.followup.send(result)
 
     @tree.command(name="교실설정", description="학년반과 전체 학생 수를 설정합니다.")
-    @app_commands.describe(학년반="예: 12는 2학년 1반", 총인원="전학·자퇴생을 제외한 전체 인원")
-    async def set_classroom(interaction: discord.Interaction, 학년반: int, 총인원: int) -> None:
+    @app_commands.describe(학년반="예: 1-2는 1학년 2반", 총인원="교실 전체 인원")
+    async def set_classroom(interaction: discord.Interaction, 학년반: str, 총인원: int) -> None:
         if interaction.guild_id is None:
             await interaction.response.send_message("서버 안에서만 사용할 수 있습니다.", ephemeral=True)
             return
+        parts = unicodedata.normalize("NFKC", 학년반).strip().split("-")
+        if len(parts) != 2 or any(
+                part.strip() not in "123456789" or len(part.strip()) != 1
+                for part in parts
+        ):
+            await interaction.response.send_message(
+                "학년반을 `1-2` 형식으로 입력해 주세요. (학년·반은 각각 1~9)",
+                ephemeral=True,
+            )
+            return
+
+        class_number = int(parts[0].strip()) * 10 + int(parts[1].strip())
+
         await interaction.response.defer(thinking=True)
-        result = await request_api("PUT", "/classroom", payload={
-            "guildId": str(interaction.guild_id), "classNumber": 학년반, "totalStudents": 총인원
-        }, guild_id=interaction.guild_id)
+        result = await request_api(
+            "PUT",
+            "/classroom",
+            payload={
+                "guildId": str(interaction.guild_id),
+                "classNumber": class_number,
+                "totalStudents": 총인원,
+            },
+            guild_id=interaction.guild_id,
+        )
         await interaction.followup.send(result)
 
     @tree.command(name="인원수정", description="아날로그 이동 학생 수를 늘리거나 줄입니다.")
