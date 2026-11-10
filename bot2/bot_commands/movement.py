@@ -6,6 +6,7 @@ from discord import app_commands
 from bot_commands.api import create_movement, request_api
 
 
+# 서버 닉네임을 밑줄로 나눠 학번과 이름을 추출합니다.
 def _student_from_nickname(nickname: str) -> dict[str, str]:
     parts = nickname.strip().split("_", maxsplit=1)
     if len(parts) != 2 or not parts[0].isdigit() or not parts[1].strip():
@@ -13,6 +14,7 @@ def _student_from_nickname(nickname: str) -> dict[str, str]:
     return {"studentNumber": parts[0], "name": parts[1].strip()}
 
 
+# 멘션한 학생(없으면 본인)의 닉네임에서 학생 정보를 읽고, 중복 학번은 제외합니다.
 def _students_from_mentions(
     interaction: discord.Interaction,
     selected: tuple[discord.Member | None, ...],
@@ -30,7 +32,9 @@ def _students_from_mentions(
     return students
 
 
+# 이동 관련 슬래시 명령어를 봇의 명령어 트리에 등록합니다.
 def register_movement_commands(tree: app_commands.CommandTree) -> None:
+    # 선택한 학생의 이동 교시와 장소를 백엔드에 등록합니다.
     @tree.command(name="이동", description="교시와 장소를 지정해 학생 이동을 등록합니다.")
     @app_commands.describe(
         교시="이동할 교시 (예: 8~10교시)",
@@ -83,6 +87,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
             return
         await interaction.followup.send(result, ephemeral=False)
 
+    # 선택한 학생의 학번으로 복귀를 요청합니다.
     @tree.command(name="복귀", description="이동 중인 학생의 복귀를 요청합니다.")
     @app_commands.describe(
         학생1="멘션할 학생 (최대 5명). 멘션을 하지 않을 시 본인이동",
@@ -117,6 +122,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         )
         await interaction.followup.send(result)
 
+    # 현재 서버에서 이동 중인 학생 전원의 복귀를 백엔드에 요청합니다.
     @tree.command(name="전원복귀", description="이동 중인 모든 학생을 복귀 처리합니다.")
     async def return_all_to_class(interaction: discord.Interaction) -> None:
         if interaction.guild_id is None:
@@ -126,6 +132,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         result = await request_api("DELETE", "/moveAll", guild_id=interaction.guild_id)
         await interaction.followup.send(result)
 
+    # 선택한 학생의 이동 교시와 장소 수정을 요청합니다.
     @tree.command(name="수정", description="등록된 이동 정보의 수정을 요청합니다.")
     @app_commands.describe(
         교시="변경할 교시 (예: 8~10, 9교시)",
@@ -171,6 +178,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         )
         await interaction.followup.send(result)
 
+    # 1-2 같은 학년반 입력을 정수 반 코드로 변환해 총인원과 함께 저장합니다.
     @tree.command(name="교실설정", description="학년반과 전체 학생 수를 설정합니다.")
     @app_commands.describe(학년반="예: 1-2는 1학년 2반", 총인원="교실 전체 인원")
     async def set_classroom(interaction: discord.Interaction, 학년반: str, 총인원: int) -> None:
@@ -203,6 +211,7 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         )
         await interaction.followup.send(result)
 
+    # 입력한 양수 또는 음수만큼 아날로그 이동 인원을 조정합니다.
     @tree.command(name="인원수정", description="아날로그 이동 학생 수를 늘리거나 줄입니다.")
     @app_commands.describe(학생수="변경할 학생 수 (예: 2는 추가, -2는 감소)")
     async def add_analog(interaction: discord.Interaction, 학생수: int) -> None:

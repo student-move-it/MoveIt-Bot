@@ -9,6 +9,7 @@ BASE_URL = os.getenv("MOVEMENT_API_BASE_URL", "https://move-it-be.vercel.app").r
 REQUEST_TIMEOUT_SECONDS = 15
 
 
+# 이동 등록 API를 호출하고 디스코드에 표시할 결과를 만듭니다.
 async def create_movement(
     *,
     students: list[dict[str, str]],
@@ -82,6 +83,7 @@ async def create_movement(
         return "이동 서버에 연결할 수 없습니다. 서버 주소와 네트워크를 확인해 주세요."
 
 
+# 교실 설정에는 관리자 키, 그 외에는 일반 키를 사용해 API를 호출하고 결과를 안내합니다.
 async def request_api(method: str, path: str, *, guild_id: int | None = None,
                       params: dict | None = None, payload: dict | None = None) -> str:
     key_env = "ADMIN_API_KEY" if method.upper() == "PUT" and path == "/classroom" else "API_KEY"
