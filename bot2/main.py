@@ -2,8 +2,11 @@ import os
 
 import discord
 from discord import app_commands
+from dotenv import load_dotenv
 
 from bot_commands.movement import register_movement_commands
+
+load_dotenv()
 
 
 class MyClient(discord.Client):
@@ -24,11 +27,10 @@ client = MyClient()
 # 로그인에 성공하면 실행 중인 봇 계정을 출력합니다.
 @client.event
 async def on_ready() -> None:
+    await client.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,
+            name="Hosted by host.cogitdev.net",
+        )
+    )
     print(f"성공적으로 로그인했습니다: {client.user}")
-
-
-if __name__ == "__main__":
-    bot_token = os.getenv("DISCORD_BOT_TOKEN")
-    if not bot_token:
-        raise SystemExit("DISCORD_BOT_TOKEN 환경변수를 설정한 뒤 실행해 주세요.")
-    client.run(bot_token)

@@ -1,0 +1,16 @@
+[Unit]
+Description=MoveIt Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/moveit-bot/bot2
+EnvironmentFile=/etc/moveit-bot.env
+ExecStart=/opt/moveit-bot/bot2/.venv/bin/python /opt/moveit-bot/bot2/main.py
+Restart=on-failure
+RestartSec=5
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target
