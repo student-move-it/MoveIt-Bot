@@ -122,14 +122,26 @@ def register_movement_commands(tree: app_commands.CommandTree) -> None:
         )
         await interaction.followup.send(result)
 
-    # 현재 서버에서 이동 중인 학생 전원의 복귀를 백엔드에 요청합니다.
-    @tree.command(name="전원복귀", description="이동 중인 모든 학생을 복귀 처리합니다.")
-    async def return_all_to_class(interaction: discord.Interaction) -> None:
+    # 입력한 반의 당일 이동 전체와 아날로그 인원을 초기화합니다.
+    @tree.command(name="전원복귀", description="지정한 반의 모든 이동을 복귀 처리합니다.")
+    @app_commands.describe(학년반="예: 1-2는 1학년 2반")
+    async def return_all_to_class(interaction: discord.Interaction, 학년반: str) -> None:
         if interaction.guild_id is None:
             await interaction.response.send_message("서버 안에서만 사용할 수 있습니다.", ephemeral=True)
             return
+        parts = unicodedata.normalize("NFKC", 학년반).strip().split("-")
+        if len(parts) != 2 or any(
+            len(part.strip()) != 1 or part.strip() not in "123456789"
+            for part in parts
+        ):
+            await interaction.response.send_message(
+                "학년반을 `1-2` 형식으로 입력해 주세요. (학년·반은 각각 1~9)",
+                ephemeral=True,
+            )
+            return
+        class_number = int(parts[0].strip()) * 10 + int(parts[1].strip())
         await interaction.response.defer(thinking=True)
-        result = await request_api("DELETE", "/moveAll", guild_id=interaction.guild_id)
+        result = await request_api("DELETE", f"/classes/{class_number}/moves")
         await interaction.followup.send(result)
 
     # 선택한 학생의 이동 교시와 장소 수정을 요청합니다.

@@ -83,10 +83,16 @@ async def create_movement(
         return "이동 서버에 연결할 수 없습니다. 서버 주소와 네트워크를 확인해 주세요."
 
 
-# 교실 설정에는 관리자 키, 그 외에는 일반 키를 사용해 API를 호출하고 결과를 안내합니다.
+# 교실 설정과 전원 복귀는 관리자 키로, 그 외에는 일반 키로 API를 호출합니다.
 async def request_api(method: str, path: str, *, guild_id: int | None = None,
                       params: dict | None = None, payload: dict | None = None) -> str:
-    key_env = "ADMIN_API_KEY" if method.upper() == "PUT" and path == "/classroom" else "API_KEY"
+    is_admin_request = (
+        method.upper() == "PUT" and path == "/classroom"
+    ) or (
+        method.upper() == "DELETE"
+        and re.fullmatch(r"/classes/[0-9]+/moves", path) is not None
+    )
+    key_env = "ADMIN_API_KEY" if is_admin_request else "API_KEY"
     api_key = os.getenv(key_env)
     if not api_key:
         return f"API 요청 실패: 봇 실행 환경변수 {key_env}가 설정되지 않았습니다."
